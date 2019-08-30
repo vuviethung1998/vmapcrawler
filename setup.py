@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='vmapcrawler',  
-     version='0.0.1',
+     version='1.0.1',
      author="Vu Viet Hung",
      author_email="vuviethung.98.hust@gmail.com",
      description="Crawler for Vmap map",
@@ -14,10 +14,10 @@ setuptools.setup(
      py_modules=["vmapcrawler"],
      packages=setuptools.find_packages(),
      classifiers=[
-         "Programming Language :: Python :: 3",
-	 "Programming Language :: Python :: 3.6",
-	 "Programming Language :: Python :: 3.7",
-         "License :: OSI Approved :: MIT License",
-         "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
      ],
  )

@@ -2,7 +2,7 @@ import os
 import string 
 import json
 import requests
-import pandas as  pd
+import pandas as pd
 import numpy as np
 import multiprocessing as mp
 from geopy import distance, Point
@@ -121,6 +121,22 @@ class VmapCrawler:
             hoanh = data['geometry']['coordinates'][1]
 
             try:
+                osm_key = data['properties']['osm_key']
+            except:
+                osm_key = ''
+                
+            try:
+                osm_value = data['properties']['osm_value']
+            except:
+                osm_value = ''
+
+            try:
+                name = data['properties']['name']
+            except:
+                name = ''
+
+
+            try:
                 sonha = data['properties']['housenumber']
             except:
                 sonha = ''
@@ -148,9 +164,9 @@ class VmapCrawler:
             else:
                 quan = ''
             
-            res_data.append((hoanh, tung, sonha, pho, phuong, quan, tpho ))
+            res_data.append((hoanh, tung, osm_key, osm_value, name, sonha, pho, phuong, quan, tpho ))
         
-        df_crawl = pd.DataFrame(data= res_data, columns=['hoanh', 'tung', 'sonha', 'pho', 'phuong', 'quan', 'tp']).drop_duplicates()
+        df_crawl = pd.DataFrame(data= res_data, columns=['hoanh', 'tung', 'osm_key', 'osm_value', 'name', 'sonha', 'pho', 'phuong', 'quan', 'tp']).drop_duplicates()
         df_crawl.to_csv(filename, mode='a', index=None, header= False)
 
 
@@ -212,6 +228,6 @@ def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, conti
 #         'Ứng Hòa' : [ 'Vân Đình', 'Cao Thành', 'Đại Cường', 'Đại Hùng', 'Đội Bình', 'Đông Lỗ', 'Đồng Tiến', 'Đồng Tân', 'Hoa Sơn', 'Hòa Lâm', 'Hòa Nam', 'Hòa Phú', 'Hòa Xá', 'Hồng Quang', 'Ứng Hòa', 'Kim Đường', 'Liên Bạt', 'Lưu Hoàng', 'Minh Đức', 'Phù Lưu', 'Phương Tú', 'Quảng Phú Cầu', 'Sơn Công', 'Tảo Dương Văn', 'Trầm Lộng', 'Trung Tú', 'Trường Thịnh', 'Vạn Thái', 'Viên An', 'Viên Nội' ],
 #         'Mỹ Đức' : [ 'Đại Nghĩa', 'An Mỹ', 'An Phú', 'An Tiến', 'Bột Xuyên', 'Đại Hưng', 'Đốc Tín', 'Đồng Tâm', 'Hồng Sơn', 'Hợp Thanh', 'Hợp Tiến', 'Hùng Tiến', 'Hương Sơn', 'Lê Thanh', 'Mỹ Thành', 'Phù Lưu Tế', 'Phúc Lâm', 'Phùng Xá', 'Thượng Lâm', 'Tuy Lai', 'Vạn Kim', 'Xuy Xá' ]
 #     }
-#     getvmapcsv(21.1959357, 21.280875, 105.7317325, 105.829239, 100, '/home/vuviethung/Desktop/alo.csv' , continue_num=-1)
+#     getvmapcsv(21.1959357, 21.280875, 105.7317325, 105.829239, 100, '/home/vuviethung/Desktop/craaaas.csv' , continue_num=-1)
 
 
