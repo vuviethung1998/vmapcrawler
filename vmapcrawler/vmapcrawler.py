@@ -9,8 +9,6 @@ from geopy import distance, Point
 import csv
 
 class VmapCrawler:
-
-
     @staticmethod
     def geturl(points):
         '''     Get latitude and longitude and form a new url
@@ -115,62 +113,70 @@ class VmapCrawler:
         '''
         res_data = []
         for json in _data:
-
-            data = json['features'][-1]
-            tung = data['geometry']['coordinates'][0]
-            hoanh = data['geometry']['coordinates'][1]
-
             try:
-                osm_key = data['properties']['osm_key']
-            except:
-                osm_key = ''
+                data = json['features'][-1]
+                tung = data['geometry']['coordinates'][0]
+                hoanh = data['geometry']['coordinates'][1]
+
+                try:
+                    osm_key = data['properties']['osm_key']
+                except:
+                    osm_key = ''
+                    
+                try:
+                    osm_value = data['properties']['osm_value']
+                except:
+                    osm_value = ''
+
+                try:
+                    name = data['properties']['name']
+                except:
+                    name = ''
+
+
+                try:
+                    sonha = data['properties']['housenumber']
+                except:
+                    sonha = ''
                 
-            try:
-                osm_value = data['properties']['osm_value']
-            except:
-                osm_value = ''
-
-            try:
-                name = data['properties']['name']
-            except:
-                name = ''
-
-
-            try:
-                sonha = data['properties']['housenumber']
-            except:
-                sonha = ''
-            
-            try:
-                pho  = data['properties']['street']
-            except:
-                pho = ''
-            
-            try:
-                phuong = data['properties']['city']
-            except:
-                phuong = ''
-            
-            try:
-                if 'Thành phó'  in  str(data['properties']['state']):
-                    tpho =  ' '.join(s for s in str(data['properties']['state']).split()[2:]).strip()
+                try:
+                    pho  = data['properties']['street']
+                except:
+                    pho = ''
+                
+                try:
+                    phuong = data['properties']['city']
+                except:
+                    phuong = ''
+                
+                try:
+                    if 'Thành phó'  in  str(data['properties']['state']):
+                        tpho =  ' '.join(s for s in str(data['properties']['state']).split()[2:]).strip()
+                    else:
+                        tpho = str(data['properties']['state'])
+                except:
+                    tpho = ''
+                
+                if dict_quan is not  None:
+                    quan = [ VmapCrawler.matchKey(phuong, dict_quan) if VmapCrawler.matchKey(phuong, dict_quan) else '' ][-1]
                 else:
-                    tpho = str(data['properties']['state'])
+                    quan = ''
+                res_data.append((hoanh, tung, osm_key, osm_value, name, sonha, pho, phuong, quan, tpho ))
             except:
-                tpho = ''
+                pass
             
-            if dict_quan is not  None:
-                quan = [ VmapCrawler.matchKey(phuong, dict_quan) if VmapCrawler.matchKey(phuong, dict_quan) else '' ][-1]
-            else:
-                quan = ''
-            
-            res_data.append((hoanh, tung, osm_key, osm_value, name, sonha, pho, phuong, quan, tpho ))
-        
         df_crawl = pd.DataFrame(data= res_data, columns=['hoanh', 'tung', 'osm_key', 'osm_value', 'name', 'sonha', 'pho', 'phuong', 'quan', 'tp']).drop_duplicates()
         df_crawl.to_csv(filename, mode='a', index=None, header= False)
 
+    @staticmethod
+    def writejson(filename, _data):
+        with open(filename, 'a', encoding='utf-8') as file:
+            for jitem in _data:
+                json.dump(jitem, file, ensure_ascii=False)
+                file.write('\n')
 
-def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, continue_num = 0,  dict_quan = None):
+
+def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, textfile , continue_num = 0,  dict_quan = None):
     '''     Crawl data and write to csv file
         min_hoanh, max_hoanh, min_tung, max_tung
         scope: 2 = 20m, 3 = 30m, 4 = 40m: smaller scope = more points crawled -> longer
@@ -182,18 +188,45 @@ def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, conti
 
     if continue_num != 0:
         points = points[continue_num:]
-    
     for i in range(len(points)):
         urls = VmapCrawler.geturl(points[i])
         p = mp.Pool(processes= len(urls))
 
         data = p.map(VmapCrawler.getlinks, urls)
         data_remove_dup = list(VmapCrawler.removeduplicate(data))
-        # print(len(data))
         p.close()
 
         VmapCrawler.writecsv(file_path, data_remove_dup, dict_quan)
-    
+        # VmapCrawler.writejson(file_path, data_remove_dup)
+        file = open(textfile, 'w')
+        file.write(str(i))
+        file.close()
+
+def getvmapjson(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, textfile , continue_num = 0,  dict_quan = None):
+    '''     Crawl data and write to csv file
+        min_hoanh, max_hoanh, min_tung, max_tung
+        scope: 2 = 20m, 3 = 30m, 4 = 40m: smaller scope = more points crawled -> longer
+        file_path: file_path to csv file
+        continue_num: back to the a specific loop where you left last time to continue crawling,default = 0
+        dict_quan: dictionary in format { quan1: { phuong1, phuong2, phuong3 } }, default = None
+    '''
+    points = VmapCrawler.getpoints(min_hoanh, max_hoanh, min_tung, max_tung, scope)
+
+    if continue_num != 0:
+        points = points[continue_num:]
+    for i in range(len(points)):
+        urls = VmapCrawler.geturl(points[i])
+        p = mp.Pool(processes= len(urls))
+
+        data = p.map(VmapCrawler.getlinks, urls)
+        data_remove_dup = list(VmapCrawler.removeduplicate(data))
+        p.close()
+
+        # VmapCrawler.writecsv(file_path, data_remove_dup, dict_quan)
+        VmapCrawler.writejson(file_path, data_remove_dup)
+        file = open(textfile, 'w')
+        file.write(str( continue_num +  i))
+        file.close()
 
 # if __name__ == '__main__':
 #     dict_quan = {
@@ -231,3 +264,6 @@ def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, conti
 #     getvmapcsv(21.1959357, 21.280875, 105.7317325, 105.829239, 100, '/home/vuviethung/Desktop/craaaas.csv' , continue_num=-1)
 
 
+
+if __name__ == "__main__":
+    getvmapjson(16.01186500000000,  16.10589305555600, 108.15683083333000, 108.25513055556000, 100, '../danang.json' , '../count.txt')
