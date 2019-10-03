@@ -44,12 +44,9 @@ class VmapCrawler:
                         scope: 2 = 20m btw each point , 4 = 40 m ....
                 Return: list of crawl points
         '''
-        hoanh_dist_lst  = []
-        tung_dist_lst   = []
         points          = []
-        _points         = []
-        _sub_lst        = []
-        _count          = 0
+        sub_lst        = []
+        count          = 0
 
         _p1 = Point("{0} {1}".format(str(min_hoanh), str(min_tung)))
         _p2 = Point("{0} {1}".format(str(max_hoanh), str(min_tung)))
@@ -57,43 +54,28 @@ class VmapCrawler:
         _p4 = Point("{0} {1}".format(str(min_hoanh), str(max_tung)))
         
         #number of points in hoanh_dist_lst
-        _num_hoanh  =   distance.distance(_p1, _p2).kilometers * 1000  / scope 
+        num_hoanh  =   distance.distance(_p1, _p2).kilometers * 1000  / scope 
         #number of points in tung_dist_lst
-        _num_tung   =   distance.distance(_p1, _p4).kilometers * 1000 / scope
+        num_tung   =   distance.distance(_p1, _p4).kilometers * 1000 / scope
 
         # scope to degree (10 m -> gps distance)
-        min_hoanh_dist  = (max_hoanh - min_hoanh) / _num_hoanh
-        min_tung_dist   = (max_tung - min_tung ) / _num_tung
-
-        #get list 
-        for _ in range(int(_num_hoanh)):
-            hoanh_dist_lst.append(min_hoanh + _ * min_hoanh_dist )
-        for _ in range(int(_num_tung)):
-            tung_dist_lst.append(min_tung + _*min_tung_dist )
+        min_hoanh_dist  = (max_hoanh - min_hoanh) / num_hoanh
+        min_tung_dist   = (max_tung - min_tung ) / num_tung
 
         #get list of points with each sub_lst contains 100 points -> easy to append file
-        for i in hoanh_dist_lst:
-            for j in tung_dist_lst:
-                if _count == 100:
-                    points.append(_sub_lst)
-                    _sub_lst    = []
-                    _count      = 0
+        for lat in np.arange(min_hoanh, max_hoanh + min_hoanh_dist, min_hoanh_dist ):
+            for lon in np.arange(min_tung, max_tung + min_tung_dist, min_tung_dist):
+                if count == 100:
+                    points.append(sub_lst)
+                    sub_lst    = []
+                    sub_lst.append((lat,lon))
+                    count      = 1
                 else:
-                    _sub_lst.append((i, j))
-                    _count += 1
+                    sub_lst.append((lat, lon))
+                    count += 1
 
         return points
-
-    @staticmethod
-    def removeduplicate(data):
-        ''' Find repeated json data in list and remove 
-        '''
-        seen = []
-        for x in data:
-            if x not in seen:
-                yield x
-                seen.append(x)
-
+        
     @staticmethod
     def matchKey(value, dict_quan):
         ''' tim quan/huyen tuong ung voi xa/phuong
@@ -169,12 +151,13 @@ class VmapCrawler:
         df_crawl.to_csv(filename, mode='a', index=None, header= False)
 
     @staticmethod
-    def writejson(filename, _data):
-        with open(filename, 'a', encoding='utf-8') as file:
-            for jitem in _data:
+    def writejson(file, data):
+        for jitem in data:
+            try:
                 json.dump(jitem, file, ensure_ascii=False)
                 file.write('\n')
-
+            except:
+                pass
 
 def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, textfile , continue_num = 0,  dict_quan = None):
     '''     Crawl data and write to csv file
@@ -193,16 +176,14 @@ def getvmapcsv(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, textf
         p = mp.Pool(processes= len(urls))
 
         data = p.map(VmapCrawler.getlinks, urls)
-        data_remove_dup = list(VmapCrawler.removeduplicate(data))
         p.close()
 
-        VmapCrawler.writecsv(file_path, data_remove_dup, dict_quan)
-        # VmapCrawler.writejson(file_path, data_remove_dup)
+        VmapCrawler.writecsv(file_path, data, dict_quan)
         file = open(textfile, 'w')
         file.write(str(i))
         file.close()
 
-def getvmapjson(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, textfile , continue_num = 0,  dict_quan = None):
+def getvmapjson(min_hoanh, max_hoanh, min_tung, max_tung, scope, jsonfile, countfile , continue_num = 0,  dict_quan = None):
     '''     Crawl data and write to csv file
         min_hoanh, max_hoanh, min_tung, max_tung
         scope: 2 = 20m, 3 = 30m, 4 = 40m: smaller scope = more points crawled -> longer
@@ -210,6 +191,8 @@ def getvmapjson(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, text
         continue_num: back to the a specific loop where you left last time to continue crawling,default = 0
         dict_quan: dictionary in format { quan1: { phuong1, phuong2, phuong3 } }, default = None
     '''
+    file_json = open(jsonfile, 'a')
+
     points = VmapCrawler.getpoints(min_hoanh, max_hoanh, min_tung, max_tung, scope)
 
     if continue_num != 0:
@@ -217,16 +200,15 @@ def getvmapjson(min_hoanh, max_hoanh, min_tung, max_tung, scope, file_path, text
     for i in range(len(points)):
         urls = VmapCrawler.geturl(points[i])
         p = mp.Pool(processes= len(urls))
-
         data = p.map(VmapCrawler.getlinks, urls)
-        data_remove_dup = list(VmapCrawler.removeduplicate(data))
         p.close()
 
-        # VmapCrawler.writecsv(file_path, data_remove_dup, dict_quan)
-        VmapCrawler.writejson(file_path, data_remove_dup)
-        file = open(textfile, 'w')
-        file.write(str( continue_num +  i))
-        file.close()
+        VmapCrawler.writejson(file_json, data)
+
+        file_count = open(countfile, 'w')
+        file_count.write(str( continue_num +  i))
+        file_count.close()    
+    file_json.close()
 
 # if __name__ == '__main__':
 #     dict_quan = {
