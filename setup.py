@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='vmapcrawler',  
-     version='3.0.3',
+     version='3.0.5',
      author="Vu Viet Hung",
      author_email="vuviethung.98.hust@gmail.com",
      description="Crawler for Vmap map",
